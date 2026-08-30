@@ -22,7 +22,10 @@ st.set_page_config(
 
 # Groq Client
 
-api_key=os.environ.get("GROQ_API_KEY")
+client = Groq(api_key=os.environ["GROQ_API_KEY"])
+models = client.models.list()
+
+st.write([model.id for model in models.data])
 
 # Feedback Function
 
