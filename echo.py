@@ -7,6 +7,8 @@ Original file is located at
     https://colab.research.google.com/drive/1ozZ75NhuSG3jIRtVzCOudy_iN3Xn_qCi
 """
 
+!pip install streamlit groq
+
 import streamlit as st
 import os
 import csv
@@ -20,9 +22,7 @@ st.set_page_config(
 
 # Groq Client
 
-client = Groq(
-    api_key=os.environ.get("GROQ_API_KEY")
-)
+api_key=os.environ.get("GROQ_API_KEY")
 
 # Feedback Function
 
@@ -137,4 +137,4 @@ if st.session_state.last_response:
                 "negative"
             )
 
-            st.warning("Thanks! We'll use this feedback to improve.")
+            st.warning("Thanks! We'll use this feedback to improve.").")
