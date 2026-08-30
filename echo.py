@@ -7,28 +7,66 @@ Original file is located at
     https://colab.research.google.com/drive/1ozZ75NhuSG3jIRtVzCOudy_iN3Xn_qCi
 """
 
-pip install streamlit groq
-
 import streamlit as st
+import os
+import csv
 from groq import Groq
 
-client = Groq(api_key="GROQ_API_KEY")
+st.set_page_config(
+    page_title="Echo",
+    page_icon="💬",
+    layout="centered"
+)
 
-st.title("Echo")
+# Groq Client
 
-# Store chat history
+client = Groq(
+    api_key=os.environ.get("GROQ_API_KEY")
+)
+
+# Feedback Function
+
+def save_feedback(prompt, response, rating):
+
+    with open("feedback_log.csv", "a", newline="", encoding="utf-8") as f:
+
+        writer = csv.writer(f)
+
+        writer.writerow([
+            prompt,
+            response,
+            rating
+        ])
+
+# App Title
+
+st.title("💬 Echo")
+st.caption("A simple AI chatbot powered by Groq")
+
+# Initialize Chat History
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display chat history
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.write(msg["content"])
+# Store Last Response
 
-# User input
+if "last_prompt" not in st.session_state:
+    st.session_state.last_prompt = None
+
+if "last_response" not in st.session_state:
+    st.session_state.last_response = None
+
+# Display Chat History
+
+for msg in st.session_state.messages:
+
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
 user_input = st.chat_input("Type your message...")
 
 if user_input:
+
     # Add user message
     st.session_state.messages.append({
         "role": "user",
@@ -36,36 +74,67 @@ if user_input:
     })
 
     # Get LLM response
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=st.session_state.messages
-    )
+    try:
 
-    bot_reply = response.choices[0].message.content
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=st.session_state.messages
+        )
 
-    # Add bot message
+        bot_reply = response.choices[0].message.content
+
+    except Exception as e:
+
+        st.error(f"Something went wrong: {e}")
+        st.stop()
+
+
+    # Add assistant response
     st.session_state.messages.append({
         "role": "assistant",
         "content": bot_reply
     })
 
+
+    # Store last interaction for feedback
+    st.session_state.last_prompt = user_input
+    st.session_state.last_response = bot_reply
+
+
+    # Rerun to display new messages
     st.rerun()
 
-# After displaying bot response, add:
-col1, col2 = st.columns(2)
-with col1:
-    if st.button("👍 Helpful"):
-        # Save feedback to a CSV
-        save_feedback(user_input, bot_reply, "positive")
-        st.success("Feedback saved!")
-with col2:
-    if st.button("👎 Not Helpful"):
-        save_feedback(user_input, bot_reply, "negative")
-        st.warning("Feedback saved!")
+# Feedback Buttons
+if st.session_state.last_response:
 
-# Feedback saving function
-import csv
-def save_feedback(prompt, response, rating):
-    with open("feedback_log.csv", "a") as f:
-        writer = csv.writer(f)
-        writer.writerow([prompt, response, rating])
+    st.divider()
+
+    st.write("Was this response helpful?")
+
+    col1, col2 = st.columns(2)
+
+
+    with col1:
+
+        if st.button("👍 Helpful", use_container_width=True):
+
+            save_feedback(
+                st.session_state.last_prompt,
+                st.session_state.last_response,
+                "positive"
+            )
+
+            st.success("Thanks for your feedback! ❤️")
+
+
+    with col2:
+
+        if st.button("👎 Not Helpful", use_container_width=True):
+
+            save_feedback(
+                st.session_state.last_prompt,
+                st.session_state.last_response,
+                "negative"
+            )
+
+            st.warning("Thanks! We'll use this feedback to improve.")
